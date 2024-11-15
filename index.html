@@ -29,11 +29,13 @@ function preload() {
     game.scale.pageAlignVertically = true;
     game.stage.backgroundColor = '#eee';
     game.load.image('paddle', './paddle.png');
-    game.load.image('brick', './brick.png');
+    game.load.image('brick_blue', './brick_blue.png');
+    game.load.image('brick_green', './brick_green.png');
+    game.load.image('brick_red', './brick_red.png');
     game.load.spritesheet('ball', './wobble.png', 20, 20);
     game.load.spritesheet('button', './button.png', 120, 40);
-
 }
+
 function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
     game.physics.arcade.checkCollision.down = false;
@@ -86,6 +88,38 @@ function initBricks() {
         padding: 10
     }
     bricks = game.add.group();
+    for (c = 0; c < brickInfo.count.col; c++) {
+        for (r = 0; r < brickInfo.count.row; r++) {
+            var brickX = (r * (brickInfo.width + brickInfo.padding)) + brickInfo.offset.left;
+            var brickY = (c * (brickInfo.height + brickInfo.padding)) + brickInfo.offset.top;
+
+            // 随机选择砖块类型
+            var brickType = Phaser.Math.between(0, 2); // 0, 1, 2
+            var brickKey;
+            var brickScore;
+
+            if (brickType === 0) {
+                brickKey = 'brick_blue';
+                brickScore = 10;
+            } else if (brickType === 1) {
+                brickKey = 'brick_green';
+                brickScore = 20;
+            } else {
+                brickKey = 'brick_red';
+                brickScore = 30;
+            }
+
+            newBrick = game.add.sprite(brickX, brickY, brickKey);
+            newBrick.brickScore = brickScore; // 给砖块添加分值属性
+            game.physics.enable(newBrick, Phaser.Physics.ARCADE);
+            newBrick.body.immovable = true;
+            newBrick.anchor.set(0.5);
+            bricks.add(newBrick);
+        }
+    }
+}
+
+    bricks = game.add.group();
     for(c=0; c<brickInfo.count.col; c++) {
         for(r=0; r<brickInfo.count.row; r++) {
             var brickX = (r*(brickInfo.width+brickInfo.padding))+brickInfo.offset.left;
@@ -100,18 +134,22 @@ function initBricks() {
 }
 function ballHitBrick(ball, brick) {
     var killTween = game.add.tween(brick.scale);
-    killTween.to({x:0,y:0}, 200, Phaser.Easing.Linear.None);
-    killTween.onComplete.addOnce(function(){
+    killTween.to({ x: 0, y: 0 }, 200, Phaser.Easing.Linear.None);
+    killTween.onComplete.addOnce(function () {
         brick.kill();
     }, this);
     killTween.start();
-    score += 10;
-    scoreText.setText('Points: '+score);
-    if(score === brickInfo.count.row*brickInfo.count.col*10) {
+
+    // 根据砖块类型增加分数
+    score += brick.brickScore;
+    scoreText.setText('Points: ' + score);
+
+    if (score >= brickInfo.count.row * brickInfo.count.col * 30) {
         alert('You won the game, congratulations!');
         location.reload();
     }
 }
+
 function ballLeaveScreen() {
     lives--;
     if(lives) {
