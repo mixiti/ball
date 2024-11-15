@@ -3,41 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phaser Breakout Game</title>
+<title>Phaser Breakout Game with Speed Control</title>
 <style>
     * { padding: 0; margin: 0; }
     body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #fafafa; }
 </style>
+<!-- 引入 Phaser 库 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/2.6.2/phaser.min.js"></script>
 </head>
 <body>
 <script>
+    // 创建游戏实例，宽 480，高 320
     var game = new Phaser.Game(480, 320, Phaser.AUTO, null, { preload: preload, create: create, update: update });
 
+    // 定义游戏对象和变量
     var ball, paddle, bricks;
-    var scoreText, livesText, lifeLostText, startButton;
+    var scoreText, livesText, lifeLostText, startButton, speedUpButton;
     var score = 0;
     var lives = 3;
     var playing = false;
     var ballSpeed = 150;
 
+    // 预加载资源
     function preload() {
         game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
         game.scale.pageAlignHorizontally = true;
         game.scale.pageAlignVertically = true;
+        // 载入图片资源
         game.load.image('paddle', 'paddle.png');
         game.load.image('brick_blue', 'brick_blue.png');
         game.load.image('brick_green', 'brick_green.png');
         game.load.image('brick_red', 'brick_red.png');
         game.load.spritesheet('ball', 'wobble.png', 20, 20);
         game.load.spritesheet('button', 'button.png', 120, 40);
+        game.load.spritesheet('speedButton', 'button.png', 120, 40);
     }
 
+    // 创建游戏场景
     function create() {
         game.physics.startSystem(Phaser.Physics.ARCADE);
         game.physics.arcade.checkCollision.down = false;
-        game.stage.backgroundColor = '#e0f7fa'; // 浅色背景
 
+        // 设置浅蓝色背景
+        game.stage.backgroundColor = '#b3e5fc';
+
+        // 创建小球
         ball = game.add.sprite(game.world.width * 0.5, game.world.height - 25, 'ball');
         ball.animations.add('wobble', [0, 1, 0, 2, 0, 1, 0, 2], 24);
         ball.anchor.set(0.5);
@@ -47,13 +57,16 @@
         ball.checkWorldBounds = true;
         ball.events.onOutOfBounds.add(ballLeaveScreen, this);
 
+        // 创建挡板
         paddle = game.add.sprite(game.world.width * 0.5, game.world.height - 5, 'paddle');
         paddle.anchor.set(0.5, 1);
         game.physics.enable(paddle, Phaser.Physics.ARCADE);
         paddle.body.immovable = true;
 
+        // 初始化砖块
         initBricks();
 
+        // 创建分数和生命显示
         var textStyle = { font: '18px Arial', fill: '#00796b' };
         scoreText = game.add.text(5, 5, 'Points: 0', textStyle);
         livesText = game.add.text(game.world.width - 5, 5, 'Lives: ' + lives, textStyle);
@@ -62,10 +75,17 @@
         lifeLostText.anchor.set(0.5);
         lifeLostText.visible = false;
 
-        startButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5, 'button', startGame, this, 1, 0, 2);
+        // 创建开始游戏按钮
+        startButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5 - 20, 'button', startGame, this, 1, 0, 2);
         startButton.anchor.set(0.5);
+
+        // 创建加速按钮
+        speedUpButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5 + 40, 'speedButton', increaseBallSpeed, this, 1, 0, 2);
+        speedUpButton.anchor.set(0.5);
+        speedUpButton.visible = false; // 初始状态不可见，游戏开始后可见
     }
 
+    // 游戏更新逻辑
     function update() {
         if (playing) {
             paddle.x = game.input.x || game.world.width * 0.5;
@@ -74,6 +94,7 @@
         }
     }
 
+    // 初始化砖块
     function initBricks() {
         var brickInfo = {
             width: 50,
@@ -87,13 +108,8 @@
             for (var r = 0; r < brickInfo.count.row; r++) {
                 var brickX = (r * (brickInfo.width + brickInfo.padding)) + brickInfo.offset.left;
                 var brickY = (c * (brickInfo.height + brickInfo.padding)) + brickInfo.offset.top;
-                var brickType = Phaser.Math.between(0, 2);
-                var brickKey = brickType === 0 ? 'brick_blue' : brickType === 1 ? 'brick_green' : 'brick_red';
-                var brickScore = brickType === 0 ? 10 : brickType === 1 ? 20 : 30;
-                
+                var brickKey = ['brick_blue', 'brick_green', 'brick_red'][Phaser.Math.between(0, 2)];
                 var newBrick = game.add.sprite(brickX, brickY, brickKey);
-                newBrick.brickScore = brickScore;
-                newBrick.isSpeedUp = (brickKey === 'brick_red'); // 红色砖块增加速度
                 game.physics.enable(newBrick, Phaser.Physics.ARCADE);
                 newBrick.body.immovable = true;
                 newBrick.anchor.set(0.5);
@@ -102,30 +118,27 @@
         }
     }
 
+    // 小球击中砖块的处理
     function ballHitBrick(ball, brick) {
         brick.kill();
-        score += brick.brickScore;
+        score += 10;
         scoreText.setText('Points: ' + score);
 
-        if (brick.isSpeedUp) {
-            increaseBallSpeed(); // 增加小球速度
-        }
-
+        // 判断游戏胜利
         if (bricks.countLiving() === 0) {
             alert('You won the game, congratulations!');
             location.reload();
         }
     }
 
+    // 小球加速功能
     function increaseBallSpeed() {
-        ballSpeed += 50; // 每次增加 50 的速度
-        var currentVelocityX = ball.body.velocity.x;
-        var currentVelocityY = ball.body.velocity.y;
-        var velocityRatio = ballSpeed / Math.sqrt(currentVelocityX * currentVelocityX + currentVelocityY * currentVelocityY);
-        ball.body.velocity.x *= velocityRatio;
-        ball.body.velocity.y *= velocityRatio;
+        ballSpeed += 50;
+        ball.body.velocity.x *= 1.1;
+        ball.body.velocity.y *= 1.1;
     }
 
+    // 小球出界处理
     function ballLeaveScreen() {
         lives--;
         if (lives) {
@@ -143,13 +156,16 @@
         }
     }
 
+    // 小球击中挡板时的处理
     function ballHitPaddle(ball, paddle) {
         ball.animations.play('wobble');
         ball.body.velocity.x = -1 * 5 * (paddle.x - ball.x);
     }
 
+    // 开始游戏
     function startGame() {
         startButton.destroy();
+        speedUpButton.visible = true;
         ball.body.velocity.set(ballSpeed, -ballSpeed);
         playing = true;
     }
