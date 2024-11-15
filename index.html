@@ -5,19 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Breakout Game</title>
 <style>
-    * { padding: 0; margin: 0; }
-    body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #fafafa; }
+    body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #fafafa;
+    }
+    #game-container {
+        background-color: #b3e5fc; /* 浅蓝色背景 */
+        margin-bottom: 20px;
+    }
+    #speedUpButton {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #00796b;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    #speedUpButton:hover {
+        background-color: #004d40;
+    }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/2.6.2/phaser.min.js"></script>
 </head>
 <body>
+    <!-- 游戏画布的容器 -->
+    <div id="game-container"></div>
+
+    <!-- HTML 加速按钮，默认隐藏，位于画布外部 -->
+    <button id="speedUpButton" style="display: none;">加速小球</button>
+
 <script>
     // 创建游戏实例
-    var game = new Phaser.Game(480, 320, Phaser.AUTO, null, { preload: preload, create: create, update: update });
+    var game = new Phaser.Game(480, 320, Phaser.AUTO, 'game-container', { preload: preload, create: create, update: update });
 
     // 定义游戏对象和变量
     var ball, paddle, bricks;
-    var scoreText, livesText, lifeLostText, startButton, speedUpButton;
+    var scoreText, livesText, lifeLostText, startButton;
     var score = 0;
     var lives = 3;
     var playing = false;
@@ -72,13 +98,15 @@
         lifeLostText.visible = false;
 
         // 创建开始游戏按钮
-        startButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5 - 20, 'button', startGame, this, 1, 0, 2);
+        startButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5, 'button', startGame, this, 1, 0, 2);
         startButton.anchor.set(0.5);
 
-        // 创建加速按钮（初始状态不可见）
-        speedUpButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5 + 40, 'button', increaseBallSpeed, this, 1, 0, 2);
-        speedUpButton.anchor.set(0.5);
-        speedUpButton.visible = false; // 游戏开始前隐藏
+        // 获取 HTML 加速按钮元素
+        const speedUpButton = document.getElementById('speedUpButton');
+        speedUpButton.style.display = 'none'; // 初始隐藏
+
+        // 添加点击事件：加速小球速度
+        speedUpButton.addEventListener('click', increaseBallSpeed);
     }
 
     // 游戏更新逻辑
@@ -158,7 +186,7 @@
     // 开始游戏
     function startGame() {
         startButton.destroy(); // 开始游戏后销毁 start 按钮
-        speedUpButton.visible = true; // 显示加速按钮
+        document.getElementById('speedUpButton').style.display = 'block'; // 显示加速按钮
         ball.body.velocity.set(ballSpeed, -ballSpeed);
         playing = true;
     }
