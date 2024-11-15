@@ -6,14 +6,12 @@
 <title>Phaser Breakout Game</title>
 <style>
     * { padding: 0; margin: 0; }
-    body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #eee; }
+    body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #fafafa; }
 </style>
-<!-- 引入 Phaser.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/2.6.2/phaser.min.js"></script>
 </head>
 <body>
 <script>
-    // 创建游戏实例
     var game = new Phaser.Game(480, 320, Phaser.AUTO, null, { preload: preload, create: create, update: update });
 
     var ball, paddle, bricks;
@@ -21,8 +19,8 @@
     var score = 0;
     var lives = 3;
     var playing = false;
+    var ballSpeed = 150;
 
-    // 预加载资源
     function preload() {
         game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
         game.scale.pageAlignHorizontally = true;
@@ -35,12 +33,11 @@
         game.load.spritesheet('button', 'button.png', 120, 40);
     }
 
-    // 创建游戏场景
     function create() {
         game.physics.startSystem(Phaser.Physics.ARCADE);
         game.physics.arcade.checkCollision.down = false;
+        game.stage.backgroundColor = '#e0f7fa'; // 浅色背景
 
-        // 创建小球
         ball = game.add.sprite(game.world.width * 0.5, game.world.height - 25, 'ball');
         ball.animations.add('wobble', [0, 1, 0, 2, 0, 1, 0, 2], 24);
         ball.anchor.set(0.5);
@@ -50,17 +47,14 @@
         ball.checkWorldBounds = true;
         ball.events.onOutOfBounds.add(ballLeaveScreen, this);
 
-        // 创建挡板
         paddle = game.add.sprite(game.world.width * 0.5, game.world.height - 5, 'paddle');
         paddle.anchor.set(0.5, 1);
         game.physics.enable(paddle, Phaser.Physics.ARCADE);
         paddle.body.immovable = true;
 
-        // 初始化砖块
         initBricks();
 
-        // 创建文本
-        var textStyle = { font: '18px Arial', fill: '#0095DD' };
+        var textStyle = { font: '18px Arial', fill: '#00796b' };
         scoreText = game.add.text(5, 5, 'Points: 0', textStyle);
         livesText = game.add.text(game.world.width - 5, 5, 'Lives: ' + lives, textStyle);
         livesText.anchor.set(1, 0);
@@ -68,12 +62,10 @@
         lifeLostText.anchor.set(0.5);
         lifeLostText.visible = false;
 
-        // 开始按钮
         startButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5, 'button', startGame, this, 1, 0, 2);
         startButton.anchor.set(0.5);
     }
 
-    // 更新游戏逻辑
     function update() {
         if (playing) {
             paddle.x = game.input.x || game.world.width * 0.5;
@@ -82,7 +74,6 @@
         }
     }
 
-    // 初始化砖块
     function initBricks() {
         var brickInfo = {
             width: 50,
@@ -102,6 +93,7 @@
                 
                 var newBrick = game.add.sprite(brickX, brickY, brickKey);
                 newBrick.brickScore = brickScore;
+                newBrick.isSpeedUp = (brickKey === 'brick_red'); // 红色砖块增加速度
                 game.physics.enable(newBrick, Phaser.Physics.ARCADE);
                 newBrick.body.immovable = true;
                 newBrick.anchor.set(0.5);
@@ -110,18 +102,30 @@
         }
     }
 
-    // 小球碰到砖块
     function ballHitBrick(ball, brick) {
         brick.kill();
         score += brick.brickScore;
         scoreText.setText('Points: ' + score);
+
+        if (brick.isSpeedUp) {
+            increaseBallSpeed(); // 增加小球速度
+        }
+
         if (bricks.countLiving() === 0) {
             alert('You won the game, congratulations!');
             location.reload();
         }
     }
 
-    // 小球离开屏幕
+    function increaseBallSpeed() {
+        ballSpeed += 50; // 每次增加 50 的速度
+        var currentVelocityX = ball.body.velocity.x;
+        var currentVelocityY = ball.body.velocity.y;
+        var velocityRatio = ballSpeed / Math.sqrt(currentVelocityX * currentVelocityX + currentVelocityY * currentVelocityY);
+        ball.body.velocity.x *= velocityRatio;
+        ball.body.velocity.y *= velocityRatio;
+    }
+
     function ballLeaveScreen() {
         lives--;
         if (lives) {
@@ -131,7 +135,7 @@
             paddle.reset(game.world.width * 0.5, game.world.height - 5);
             game.input.onDown.addOnce(function () {
                 lifeLostText.visible = false;
-                ball.body.velocity.set(150, -150);
+                ball.body.velocity.set(ballSpeed, -ballSpeed);
             }, this);
         } else {
             alert('Game Over!');
@@ -139,16 +143,14 @@
         }
     }
 
-    // 小球碰到挡板
     function ballHitPaddle(ball, paddle) {
         ball.animations.play('wobble');
         ball.body.velocity.x = -1 * 5 * (paddle.x - ball.x);
     }
 
-    // 开始游戏
     function startGame() {
         startButton.destroy();
-        ball.body.velocity.set(150, -150);
+        ball.body.velocity.set(ballSpeed, -ballSpeed);
         playing = true;
     }
 </script>
