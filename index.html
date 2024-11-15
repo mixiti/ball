@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phaser Breakout Game with Speed Control</title>
+<title>Breakout Game with Speed Up</title>
 <style>
     * { padding: 0; margin: 0; }
     body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #fafafa; }
 </style>
-<!-- 引入 Phaser 库 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/2.6.2/phaser.min.js"></script>
 </head>
 <body>
@@ -31,12 +30,9 @@
         game.scale.pageAlignVertically = true;
         // 载入图片资源
         game.load.image('paddle', 'paddle.png');
-        game.load.image('brick_blue', 'brick_blue.png');
-        game.load.image('brick_green', 'brick_green.png');
-        game.load.image('brick_red', 'brick_red.png');
+        game.load.image('brick', 'brick.png'); // 使用统一的砖块图片
         game.load.spritesheet('ball', 'wobble.png', 20, 20);
         game.load.spritesheet('button', 'button.png', 120, 40);
-        game.load.spritesheet('speedButton', 'button.png', 120, 40);
     }
 
     // 创建游戏场景
@@ -79,10 +75,13 @@
         startButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5 - 20, 'button', startGame, this, 1, 0, 2);
         startButton.anchor.set(0.5);
 
-        // 创建加速按钮
-        speedUpButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5 + 40, 'speedButton', increaseBallSpeed, this, 1, 0, 2);
+        // 创建加速按钮（初始状态不可见）
+        speedUpButton = game.add.button(game.world.width * 0.5, game.world.height * 0.5 + 40, 'button', increaseBallSpeed, this, 1, 0, 2);
         speedUpButton.anchor.set(0.5);
-        speedUpButton.visible = false; // 初始状态不可见，游戏开始后可见
+        speedUpButton.visible = false;
+        speedUpButton.text = game.add.text(game.world.width * 0.5, game.world.height * 0.5 + 40, 'Speed Up', textStyle);
+        speedUpButton.text.anchor.set(0.5);
+        speedUpButton.text.visible = false;
     }
 
     // 游戏更新逻辑
@@ -108,8 +107,7 @@
             for (var r = 0; r < brickInfo.count.row; r++) {
                 var brickX = (r * (brickInfo.width + brickInfo.padding)) + brickInfo.offset.left;
                 var brickY = (c * (brickInfo.height + brickInfo.padding)) + brickInfo.offset.top;
-                var brickKey = ['brick_blue', 'brick_green', 'brick_red'][Phaser.Math.between(0, 2)];
-                var newBrick = game.add.sprite(brickX, brickY, brickKey);
+                var newBrick = game.add.sprite(brickX, brickY, 'brick');
                 game.physics.enable(newBrick, Phaser.Physics.ARCADE);
                 newBrick.body.immovable = true;
                 newBrick.anchor.set(0.5);
@@ -118,34 +116,32 @@
         }
     }
 
-    // 小球击中砖块的处理
+    // 小球击中砖块
     function ballHitBrick(ball, brick) {
         brick.kill();
         score += 10;
         scoreText.setText('Points: ' + score);
 
-        // 判断游戏胜利
         if (bricks.countLiving() === 0) {
-            alert('You won the game, congratulations!');
+            alert('You won the game!');
             location.reload();
         }
     }
 
-    // 小球加速功能
+    // 增加小球速度
     function increaseBallSpeed() {
         ballSpeed += 50;
-        ball.body.velocity.x *= 1.1;
-        ball.body.velocity.y *= 1.1;
+        ball.body.velocity.x *= 1.2;
+        ball.body.velocity.y *= 1.2;
     }
 
-    // 小球出界处理
+    // 小球出界
     function ballLeaveScreen() {
         lives--;
         if (lives) {
             livesText.setText('Lives: ' + lives);
             lifeLostText.visible = true;
             ball.reset(game.world.width * 0.5, game.world.height - 25);
-            paddle.reset(game.world.width * 0.5, game.world.height - 5);
             game.input.onDown.addOnce(function () {
                 lifeLostText.visible = false;
                 ball.body.velocity.set(ballSpeed, -ballSpeed);
@@ -156,7 +152,7 @@
         }
     }
 
-    // 小球击中挡板时的处理
+    // 小球击中挡板
     function ballHitPaddle(ball, paddle) {
         ball.animations.play('wobble');
         ball.body.velocity.x = -1 * 5 * (paddle.x - ball.x);
@@ -166,9 +162,12 @@
     function startGame() {
         startButton.destroy();
         speedUpButton.visible = true;
+        speedUpButton.text.visible = true;
         ball.body.velocity.set(ballSpeed, -ballSpeed);
         playing = true;
     }
 </script>
 </body>
+</html>
+
 </html>
